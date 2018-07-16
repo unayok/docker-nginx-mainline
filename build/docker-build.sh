@@ -5,7 +5,7 @@
 ### Globals
 ###
 CWD="$(cd -P -- "$(dirname -- "$0")" && pwd -P)/.."
-VEND=devilbox
+VEND="${VEND-devilbox}"
 NAME=nginx-mainline
 
 ###

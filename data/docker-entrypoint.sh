@@ -24,7 +24,7 @@ CONFIG_DIR="/docker-entrypoint.d"
 
 
 # Wait this many seconds to start watcherd after httpd has been started
-WATCHERD_STARTUP_DELAY="3"
+WATCHERD_STARTUP_DELAY="5"
 
 
 ###
@@ -88,25 +88,27 @@ export_php_fpm_server_port "PHP_FPM_SERVER_PORT" "${DEBUG_LEVEL}"
 ### Ensure MAIN_VHOST variables are exported
 ###
 export_main_vhost_enable "MAIN_VHOST_ENABLE" "${DEBUG_LEVEL}"
-export_main_vhost_ssl_type "MAIN_VHOST_SSL_TYPE" "${DEBUG_LEVEL}"
-export_main_vhost_ssl_gen "MAIN_VHOST_SSL_GEN" "${DEBUG_LEVEL}"
-export_main_vhost_ssl_cn "MAIN_VHOST_SSL_CN" "${DEBUG_LEVEL}"
-export_main_vhost_docroot "MAIN_VHOST_DOCROOT" "${DEBUG_LEVEL}"
-export_main_vhost_tpl "MAIN_VHOST_TPL" "${DEBUG_LEVEL}"
-export_main_vhost_status_enable "MAIN_VHOST_STATUS_ENABLE" "${DEBUG_LEVEL}"
-export_main_vhost_status_alias "MAIN_VHOST_STATUS_ALIAS" "${DEBUG_LEVEL}"
-
+if [[ "${MAIN_VHOST_ENABLE}" = "1" ]] ; then
+	export_main_vhost_ssl_type "MAIN_VHOST_SSL_TYPE" "${DEBUG_LEVEL}"
+	export_main_vhost_ssl_gen "MAIN_VHOST_SSL_GEN" "${DEBUG_LEVEL}"
+	export_main_vhost_ssl_cn "MAIN_VHOST_SSL_CN" "${DEBUG_LEVEL}"
+	export_main_vhost_docroot "MAIN_VHOST_DOCROOT" "${DEBUG_LEVEL}"
+	export_main_vhost_tpl "MAIN_VHOST_TPL" "${DEBUG_LEVEL}"
+	export_main_vhost_status_enable "MAIN_VHOST_STATUS_ENABLE" "${DEBUG_LEVEL}"
+	export_main_vhost_status_alias "MAIN_VHOST_STATUS_ALIAS" "${DEBUG_LEVEL}"
+fi
 
 ###
 ### Ensure MASS_VHOST variables are exported
 ###
 export_mass_vhost_enable "MASS_VHOST_ENABLE" "${DEBUG_LEVEL}"
-export_mass_vhost_ssl_type "MASS_VHOST_SSL_TYPE" "${DEBUG_LEVEL}"
-export_mass_vhost_ssl_gen "MASS_VHOST_SSL_GEN" "${DEBUG_LEVEL}"
-export_mass_vhost_tld "MASS_VHOST_TLD" "${DEBUG_LEVEL}"
-export_mass_vhost_docroot "MASS_VHOST_DOCROOT" "${DEBUG_LEVEL}"
-export_mass_vhost_tpl "MASS_VHOST_TPL" "${DEBUG_LEVEL}"
-
+if [[ "${MASS_VHOST_ENABLE}" = "1" ]] ; then
+	export_mass_vhost_ssl_type "MASS_VHOST_SSL_TYPE" "${DEBUG_LEVEL}"
+	export_mass_vhost_ssl_gen "MASS_VHOST_SSL_GEN" "${DEBUG_LEVEL}"
+	export_mass_vhost_tld "MASS_VHOST_TLD" "${DEBUG_LEVEL}"
+	export_mass_vhost_docroot "MASS_VHOST_DOCROOT" "${DEBUG_LEVEL}"
+	export_mass_vhost_tpl "MASS_VHOST_TPL" "${DEBUG_LEVEL}"
+fi
 
 ###
 ### Default and/or mass vhost must be enabled (at least one of them)
@@ -139,21 +141,22 @@ vhost_gen_docker_logs "${DOCKER_LOGS}" "/etc/vhost-gen/mass.yml" "${DEBUG_LEVEL}
 ###
 ### Main vhost settings
 ###
-vhost_gen_main_vhost_httpd_status \
-	"${MAIN_VHOST_STATUS_ENABLE}" \
-	"${MAIN_VHOST_STATUS_ALIAS}" \
-	"/etc/vhost-gen/main.yml" \
-	"${DEBUG_LEVEL}"
+if [[ "${MAIN_VHOST_ENABLE}" = 1 ]] ; then
+	vhost_gen_main_vhost_httpd_status \
+		"${MAIN_VHOST_STATUS_ENABLE}" \
+		"${MAIN_VHOST_STATUS_ALIAS}" \
+		"/etc/vhost-gen/main.yml" \
+		"${DEBUG_LEVEL}"
 
-vhost_gen_generate_main_vhost \
-	"${MAIN_VHOST_ENABLE}" \
-	"/var/www/default/${MAIN_VHOST_DOCROOT}" \
-	"/etc/vhost-gen/main.yml" \
-	"/var/www/default/${MAIN_VHOST_TPL}" \
-	"${MAIN_VHOST_SSL_TYPE}" \
-	"${DEBUG_RUNTIME}" \
-	"${DEBUG_LEVEL}"
-
+	vhost_gen_generate_main_vhost \
+		"${MAIN_VHOST_ENABLE}" \
+		"/var/www/default/${MAIN_VHOST_DOCROOT}" \
+		"/etc/vhost-gen/main.yml" \
+		"/var/www/default/${MAIN_VHOST_TPL}" \
+		"${MAIN_VHOST_SSL_TYPE}" \
+		"${DEBUG_RUNTIME}" \
+		"${DEBUG_LEVEL}"
+fi
 
 ###
 ### Mass vhost settings
@@ -179,24 +182,27 @@ vhost_gen_mass_vhost_tld \
 ###
 ### Create Certificate Signing request
 ###
-cert_gen_generate_ca "${CA_KEY}" "${CA_CRT}" "${DEBUG_RUNTIME}" "${DEBUG_LEVEL}"
+if [[ "${MAIN_VHOST_SSL_GEN:-0}" = "1" || "${MASS_VHOST_SSL_GEN:-0}" = "1" ]] ; then
+	cert_gen_generate_ca "${CA_KEY}" "${CA_CRT}" "${DEBUG_RUNTIME}" "${DEBUG_LEVEL}"
+fi
 
 
 ###
 ### Generate main vhost ssl certificate
 ###
-cert_gen_generate_cert \
-	"${MAIN_VHOST_ENABLE}" \
-	"${MAIN_VHOST_SSL_TYPE}" \
-	"${CA_KEY}" \
-	"${CA_CRT}" \
-	"/etc/httpd/cert/main/localhost.key" \
-	"/etc/httpd/cert/main/localhost.csr" \
-	"/etc/httpd/cert/main/localhost.crt" \
-	"${MAIN_VHOST_SSL_CN}" \
-	"${DEBUG_RUNTIME}" \
-	"${DEBUG_LEVEL}"
-
+if [[ "${MAIN_VHOST_SSL_GEN:-0}" = 1 ]] ; then
+	cert_gen_generate_cert \
+		"${MAIN_VHOST_ENABLE}" \
+		"${MAIN_VHOST_SSL_TYPE}" \
+		"${CA_KEY}" \
+		"${CA_CRT}" \
+		"/etc/httpd/cert/main/localhost.key" \
+		"/etc/httpd/cert/main/localhost.csr" \
+		"/etc/httpd/cert/main/localhost.crt" \
+		"${MAIN_VHOST_SSL_CN}" \
+		"${DEBUG_RUNTIME}" \
+		"${DEBUG_LEVEL}"
+fi
 
 
 ################################################################################
@@ -222,7 +228,7 @@ if [ "${MASS_VHOST_ENABLE}" -eq "1" ]; then
 	fi
 
 	# Create watcherd sub commands
-	watcherd_add="create-vhost.sh '%%p' '%%n' '${MASS_VHOST_TLD}' '%%p/${MASS_VHOST_TPL}/' '${CA_KEY}' '${CA_CRT}' '${verbose}' '1'"
+	watcherd_add="create-vhost.sh '%%p' '%%n' '${MASS_VHOST_TLD}' '%%p/${MASS_VHOST_TPL}/' '${CA_KEY}' '${CA_CRT}' '${verbose}' '${MASS_VHOST_SSL_GEN}'"
 	watcherd_del="rm /etc/httpd/vhost.d/%%n.conf"
 	watcherd_tri="${HTTPD_RELOAD}"
 
